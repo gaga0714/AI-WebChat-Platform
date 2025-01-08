@@ -1,0 +1,43 @@
+{
+  "name": "aiwebchat",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "keywords": [
+    "element-plus",
+    "vue3",
+    "vite",
+    "deepseek",
+    "vue3-markdown-it",
+    "markdown-it",
+    "highlight.js",
+    "openai"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "axios": "^1.7.9",
+    "element-plus": "^2.9.1",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
+    "markdown-it-code-copy": "^0.2.1",
+    "markdown-it-highlightjs": "^4.2.0",
+    "mobile-detect": "^1.4.5",
+    "openai": "^5.12.2",
+    "sass": "^1.83.0",
+    "vite-bundle-visualizer": "^1.2.1",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "vue3-markdown-it": "^1.0.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "terser": "^5.38.1",
+    "vite": "^6.0.5",
+    "vite-plugin-compression": "^0.5.1"
+  }
+}
