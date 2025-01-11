@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
-// import { visualizer } from 'vite-bundle-visualizer';
 import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig({
@@ -14,11 +13,6 @@ export default defineConfig({
       algorithm: 'gzip',
       ext: '.gz',
     }),
-    // visualizer({
-    //   open: false,
-    //   gzipSize: true,
-    //   brotliSize: true,
-    // }),
   ],
   css: {
     preprocessorOptions: {
@@ -53,14 +47,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 2000,
   },
-  // server: {
-  //   proxy: {
-  //     "/user": {
-  //       target: "https://api.deepseek.com/user",
-  //       changeOrigin: true,
-  //       secure: false,
-  //       rewrite: (path) => path.replace(/^\/user/, "/"),
-  //     },
-  //   },
-  // },
 });
