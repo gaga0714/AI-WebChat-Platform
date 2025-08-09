@@ -39,3 +39,4 @@ http://gaga0714.site:10003/
 
 ## 效果图
 ![alt text](/assets/image.png)
+![alt text](/assets/image1.jpg)
