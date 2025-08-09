@@ -35,3 +35,7 @@ http://gaga0714.site:10003/
         ```
 
     - 部署构建后的文件到服务器
+
+
+## 效果图
+![alt text](/assets/image.png)
