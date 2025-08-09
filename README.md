@@ -36,7 +36,14 @@ http://gaga0714.site:10003/
 
     - 部署构建后的文件到服务器
 
+3.  **vite-bundle-visualizer**
+    官网链接：https://www.npmjs.com/package/vite-bundle-visualizer
+    - 可视化工具计算各模块大小
+    ```js
+        npx vite-bundle-visualizer
+    ```
 
 ## 效果图
 ![alt text](/assets/image.png)
 ![alt text](/assets/image1.jpg)
+![alt text](/assets/image2.png)
