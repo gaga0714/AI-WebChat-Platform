@@ -1,0 +1,67 @@
+name: 🚀 aiwebchat
+
+# 定义触发工作流的事件，当 main 分支有新的 push 时触发
+on:
+  push:
+    branches:
+      - main
+
+# 集中管理环境变量，便于维护
+env:
+  # 服务器上的项目部署路径，请根据你的项目修改
+  DEPLOY_PATH: /home/html/aiwebchat/
+  # 项目构建命令，如果是 Vite 项目通常是 'build'
+  BUILD_SCRIPT: build
+  # 构建产物目录，通常是 'dist'
+  BUILD_DIR: dist
+  # GitHub Actions Secrets
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_USER: ${{ secrets.SSH_USER }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🔧 Build Project
+        run: npm run ${{ env.BUILD_SCRIPT }}
+
+      - name: 🧹 Clean Server Directory
+        # 使用 SSH 命令清空服务器上的旧文件，确保部署的是最新内容
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          script: |
+            echo "Cleaning up old files in ${{ env.DEPLOY_PATH }}"
+            rm -rf ${{ env.DEPLOY_PATH }}/*
+
+      - name: 📤 Upload Build Files to Server
+        # 使用 SCP 将构建后的文件上传到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          source: "${{ env.BUILD_DIR }}/**"
+          target: ${{ env.DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: 🔄 Restart Nginx
+        # 重启 Nginx 服务，以确保新文件被正确加载
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          script: |
+            echo "Restarting Nginx service..."
+            sudo systemctl restart nginx
