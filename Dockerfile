@@ -12,6 +12,11 @@ COPY package*.json ./
 # 安装项目依赖
 RUN npm ci
 
+# ✅ 添加这行：将外部传入的 DEEPSEEK_API_KEY 声明为构建参数
+ARG DEEPSEEK_API_KEY
+# ✅ 添加这行：将构建参数设置为环境变量
+ENV DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+
 # 复制项目所有文件到容器中
 COPY . .
 
