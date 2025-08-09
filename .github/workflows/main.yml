@@ -46,7 +46,7 @@ jobs:
           port: ${{ env.SSH_PORT }}
           script: |
             echo "Cleaning up old files in ${{ env.DEPLOY_PATH }}"
-            rm -rf ${{ env.DEPLOY_PATH }}/*
+            rm -rf ${{ env.DEPLOY_PATH }}*
 
       - name: 📤 Upload Build Files to Server
         uses: appleboy/scp-action@v0.1.7
@@ -69,4 +69,3 @@ jobs:
           script: |
             echo "Restarting Nginx service..."
             sudo systemctl restart nginx
-            
