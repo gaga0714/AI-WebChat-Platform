@@ -1,0 +1,70 @@
+name: 🚀 aiwebchat
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DEPLOY_PATH: /home/html/aiwebchat/
+  BUILD_SCRIPT: build
+  BUILD_DIR: dist
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_USER: ${{ secrets.SSH_USER }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+  SSH_PORT: 22 
+  DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      # ✅ 新增的步骤：动态创建 key.js 文件
+      - name: 🔐 Create API Key File
+        run: |
+          mkdir -p src/config
+          # 确保这里的路径和文件名与你 deepseek.js 中导入的路径一致
+          echo "export const apiKey = '${{ env.DEEPSEEK_API_KEY }}';" > src/config/key.js
+      
+      - name: 🔧 Build Project
+        run: npm run ${{ env.BUILD_SCRIPT }}
+
+      - name: 🧹 Clean Server Directory
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          port: ${{ env.SSH_PORT }}
+          script: |
+            echo "Cleaning up old files in ${{ env.DEPLOY_PATH }}"
+            rm -rf ${{ env.DEPLOY_PATH }}*
+
+      - name: 📤 Upload Build Files to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          port: ${{ env.SSH_PORT }}
+          source: "${{ env.BUILD_DIR }}/**"
+          target: ${{ env.DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: 🔄 Restart Nginx
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_KEY }}
+          port: ${{ env.SSH_PORT }}
+          script: |
+            echo "Restarting Nginx service..."
+            sudo systemctl restart nginx

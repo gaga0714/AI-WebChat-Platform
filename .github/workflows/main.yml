@@ -1,4 +1,4 @@
-name: 🚀 aiwebchat
+name: 🐳 aiwebchat Docker CI/CD
 
 on:
   push:
@@ -6,37 +6,53 @@ on:
       - main
 
 env:
-  DEPLOY_PATH: /home/html/aiwebchat/
-  BUILD_SCRIPT: build
-  BUILD_DIR: dist
+  # 统一管理容器镜像名称和标签
+  IMAGE_NAME: aiwebchat-app
+  IMAGE_TAG: ${{ github.sha }}
+  
+  # Docker Hub 或其他容器仓库信息
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+  # 部署服务器信息，用于SSH连接
   SSH_HOST: ${{ secrets.SSH_HOST }}
   SSH_USER: ${{ secrets.SSH_USER }}
   SSH_KEY: ${{ secrets.SSH_KEY }}
-  SSH_PORT: 22 
-  DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  SSH_PORT: 22
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
 
-      - name: 📦 Install Dependencies
-        run: npm ci
+      # ✅ 新增步骤：设置 buildx 以支持多架构构建
+      - name: 🛠 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # ✅ 新增的步骤：动态创建 key.js 文件
-      - name: 🔐 Create API Key File
-        run: |
-          mkdir -p src/config
-          # 确保这里的路径和文件名与你 deepseek.js 中导入的路径一致
-          echo "export const apiKey = '${{ env.DEEPSEEK_API_KEY }}';" > src/config/key.js
-      
-      - name: 🔧 Build Project
-        run: npm run ${{ env.BUILD_SCRIPT }}
+      # ✅ 关键修改：登录到 Docker 镜像仓库
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
 
-      - name: 🧹 Clean Server Directory
+      # ✅ 关键修改：构建并推送 Docker 镜像
+      - name: 📦 Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+
+      # ❌ 移除旧的 SSH/SCP 步骤，仅保留部署
+      - name: 🚀 Deploy to Server via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ env.SSH_HOST }}
@@ -44,27 +60,17 @@ jobs:
           key: ${{ env.SSH_KEY }}
           port: ${{ env.SSH_PORT }}
           script: |
-            echo "Cleaning up old files in ${{ env.DEPLOY_PATH }}"
-            rm -rf ${{ env.DEPLOY_PATH }}*
+            # 拉取最新镜像
+            echo "Pulling latest Docker image..."
+            sudo docker pull ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: 📤 Upload Build Files to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ env.SSH_KEY }}
-          port: ${{ env.SSH_PORT }}
-          source: "${{ env.BUILD_DIR }}/**"
-          target: ${{ env.DEPLOY_PATH }}
-          strip_components: 1
+            # 停止并移除旧的容器
+            echo "Stopping and removing old container..."
+            sudo docker stop ${{ env.IMAGE_NAME }} || true
+            sudo docker rm ${{ env.IMAGE_NAME }} || true
 
-      - name: 🔄 Restart Nginx
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ env.SSH_KEY }}
-          port: ${{ env.SSH_PORT }}
-          script: |
-            echo "Restarting Nginx service..."
-            sudo systemctl restart nginx
+            # 启动新的容器
+            echo "Starting new container..."
+            sudo docker run -d --name ${{ env.IMAGE_NAME }} -p 80:80 ${{ env.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            
+            echo "Deployment finished successfully!"
