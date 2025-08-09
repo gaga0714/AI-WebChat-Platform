@@ -12,8 +12,7 @@ env:
   SSH_HOST: ${{ secrets.SSH_HOST }}
   SSH_USER: ${{ secrets.SSH_USER }}
   SSH_KEY: ${{ secrets.SSH_KEY }}
-  SSH_PORT: ${{secrets.SSH_PORT }}
-  # 新增一个用于存储 API 密钥的 Secret 变量
+  SSH_PORT: 10003 
   DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 
 jobs:
