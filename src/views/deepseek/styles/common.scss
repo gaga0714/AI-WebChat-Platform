@@ -183,8 +183,9 @@
   }
 }
 
+
 :deep(.el-button) {
-  background-color: #bca7e8;
+  background-color: #8067b6;
   border: none;
   color: #fff;
   border-radius: 12px;
@@ -206,13 +207,25 @@
   }
 
   &.is-disabled {
-    background-color: rgba(186, 173, 215, 0.5);
-    color: rgba(255, 255, 255, 0.6);
+    background-color: rgb(109 78 178 / 70%);
+    color: rgb(255 255 255 / 70%);
   }
 }
 
 :deep(.el-textarea__inner) {
   resize: none;
+  color:#202123;
+  border-radius: 5px;
+  --el-input-focus-border-color:#772ba8;
+  --el-input-border-color:#cdd0d7;
+  --el-input-hover-border-color:#b394cf;
+}
+
+:deep(.el-select__placeholder){
+  color:#777179;
+}
+:deep(.el-popper){
+  background:#9a83ca;
 }
 
 :deep(.el-input__wrapper),
@@ -230,6 +243,9 @@
   &.is-focus {
     border-color: #a18cd1;
     box-shadow: 0 0 12px rgba(161, 140, 209, 0.4);
+  }
+  .el-scrollbar{
+    color: #d6d4e0;
   }
 
   .el-input__inner {

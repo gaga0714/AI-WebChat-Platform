@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage":"http://gaga0714.site:10003/",
   "keywords": [
     "element-plus",
     "vue3",
@@ -27,7 +28,7 @@
     "markdown-it-code-copy": "^0.2.1",
     "markdown-it-highlightjs": "^4.2.0",
     "mobile-detect": "^1.4.5",
-    "openai": "^5.12.2",
+    "openai": "^4.77.0",
     "sass": "^1.83.0",
     "vite-bundle-visualizer": "^1.2.1",
     "vue": "^3.5.13",

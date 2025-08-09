@@ -303,7 +303,7 @@ onMounted(async () => {
               handleRequest();
             }" />
           <el-select v-model="queryInfos.model" class="model-select" @change="handleModelChange">
-            <el-option label="DeepSeek" value="deepseek-chat" />
+            <el-option label="DeepSeek" value="deepseek-chat" class="deepseek-option" />
             <el-option label="Gemini" value="gemini-chat" />
           </el-select>
           <el-button style="height: 40px" type="primary" @click="handleRequest" :disabled="!queryKeys"
