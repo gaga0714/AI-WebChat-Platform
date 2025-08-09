@@ -69,4 +69,3 @@ jobs:
           script: |
             echo "Restarting Nginx service..."
             sudo systemctl restart nginx
-            
