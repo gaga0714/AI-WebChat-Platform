@@ -111,12 +111,13 @@ jobs:
             systemctl enable --now docker || service docker start
           fi
 
-          # 1) 合法 daemon.json（镜像加速器）
+          # 1) 配置 daemon.json（优先阿里云加速器）
           mkdir -p /etc/docker
           cp /etc/docker/daemon.json /etc/docker/daemon.json.bak 2>/dev/null || true
           cat >/etc/docker/daemon.json <<'JSON'
           {
             "registry-mirrors": [
+              "https://gg0kfs89.mirror.aliyuncs.com",
               "https://docker.m.daocloud.io",
               "https://mirror.ccs.tencentyun.com"
             ]
@@ -151,33 +152,40 @@ jobs:
           DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
           EOT
 
-          # 4) 拉取与启动（延长客户端/HTTP超时）
+          # 4) 载入环境变量
           if [ -f .env ]; then
             set -a; . ./.env; set +a
           fi
+
+          # 5) 提前登录 Docker Hub（保证回退拉取也能用到凭证）
           if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
             echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || true
           fi
-                      
+
           export DOCKER_CLIENT_TIMEOUT=600
           export COMPOSE_HTTP_TIMEOUT=600
-                      
+
+          # 6) 带重试的 pull（显式指定镜像名）
           pull_with_retry() {
             local tries=5
+            local web="${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest"
+            local proxy="${PROXY_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-proxy}:latest"
             for ((i=1; i<=tries; i++)); do
-              echo "[server] compose pull try #$i"
-              if $DC pull; then
+              echo "[server] pull try #$i: $web / $proxy"
+              if docker pull "$web" && docker pull "$proxy"; then
                 return 0
               fi
               sleep $((10*i))
             done
             return 1
           }
-                      
+
+          # 7) 回退镜像代理拉取并 retag
           mirror_pull_and_retag() {
             local web="${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest"
             local proxy="${PROXY_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-proxy}:latest"
             local mirrors=(
+              "<你的阿里云加速器ID>.mirror.aliyuncs.com"
               "docker.m.daocloud.io"
               "dockerproxy.com"
               "hub.uuuadc.top"
@@ -197,14 +205,15 @@ jobs:
               done
             done
           }
-                      
+
           if pull_with_retry; then
-            echo "[server] compose pull ok"
+            echo "[server] direct pull ok"
           else
-            echo "[server] compose pull failed, try mirrors + retag ..."
+            echo "[server] direct pull failed, try mirrors + retag ..."
             mirror_pull_and_retag
           fi
-                      
+
+          # 8) 启动服务
           $DC up -d --remove-orphans
           docker image prune -f
-                      
+          EOF
