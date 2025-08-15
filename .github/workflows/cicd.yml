@@ -60,6 +60,11 @@ jobs:
           PROXY_IMAGE=${{ env.PROXY_IMAGE }}
           EOF
 
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -T 15 ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
       # --- 上传到服务器 /opt/aiwebchat ---
       - name: Upload deploy bundle to server
         uses: appleboy/scp-action@v0.1.7
@@ -88,3 +93,4 @@ jobs:
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
+            
