@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   web:
     image: ${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest

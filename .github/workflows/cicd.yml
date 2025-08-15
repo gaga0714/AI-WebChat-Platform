@@ -118,9 +118,6 @@ jobs:
           {
             "registry-mirrors": [
               "https://docker.m.daocloud.io"
-              /* 也可加入你的阿里云专属加速器，例如：
-                 "https://<你的ACR加速ID>.mirror.aliyuncs.com"
-              */
             ]
           }
           JSON
