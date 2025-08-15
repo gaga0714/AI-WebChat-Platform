@@ -60,7 +60,7 @@ jobs:
           PROXY_IMAGE=${{ env.PROXY_IMAGE }}
           EOF
 
-      # --- 预写 known_hosts，避免首次连接交互（带 IPv4/IPv6 回退 + 重试） ---
+      # --- 预写 known_hosts（避免首次连接交互，带 IPv4/IPv6 回退 + 重试） ---
       - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -79,20 +79,23 @@ jobs:
           source: "deploy/*"
           target: "/opt/aiwebchat"
 
-      # --- 部署：在服务器写 api.env，compose 更新 ---
-      - name: Deploy on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            set -e
-            cd /opt/aiwebchat
-            cat > api.env <<EOF
-            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
-            EOF
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f
+      # --- 写入私钥文件（供原生 ssh 使用） ---
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/aiwebchat_key
+          chmod 600 ~/.ssh/aiwebchat_key
+
+      # --- 使用原生 ssh 进行部署 ---
+      - name: Deploy on server (native ssh)
+        run: |
+          ssh -i ~/.ssh/aiwebchat_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'EOF'
+          set -e
+          cd /opt/aiwebchat
+          cat > api.env <<'EOT'
+          DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+          EOT
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker image prune -f
+          EOF
