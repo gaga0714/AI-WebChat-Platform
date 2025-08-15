@@ -92,7 +92,7 @@ jobs:
           target: "/opt/aiwebchat"
           strip_components: 1
 
-      # --- 使用原生 ssh 进行部署 ---
+      # --- 使用原生 ssh 进行部署（自动确保 Docker/Compose 就绪） ---
       - name: Deploy on server (native ssh)
         run: |
           ssh -i ~/.ssh/aiwebchat_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'EOF'
@@ -100,23 +100,44 @@ jobs:
           cd /opt/aiwebchat
           echo "[server] files in /opt/aiwebchat:"
           ls -la
-
-          # 写入 DeepSeek KEY（此处内容已在 Runner 侧展开）
+      
+          # 1) 确保已安装 Docker
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "[server] installing docker..."
+            curl -fsSL https://get.docker.com | sh
+          fi
+      
+          # 2) 确保 Docker 已启动
+          if ! (systemctl is-active --quiet docker || service docker status >/dev/null 2>&1); then
+            echo "[server] starting docker..."
+            systemctl enable --now docker || service docker start
+          fi
+      
+          # 3) 选择可用的 compose 命令（优先 docker compose）
+          if docker compose version >/dev/null 2>&1; then
+            DC="docker compose"
+          elif command -v docker-compose >/dev/null 2>&1; then
+            DC="docker-compose"
+          else
+            echo "[server] installing docker compose plugin..."
+            apt-get update -y && apt-get install -y docker-compose-plugin || true
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            else
+              apt-get install -y docker-compose || true
+              DC="docker-compose"
+            fi
+          fi
+      
+          # 4) 写入 DeepSeek KEY（由 Runner 侧替换后下发）
           cat > api.env <<'EOT'
           DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
           EOT
-
-          # 选择 docker compose 命令
-          if docker compose version >/dev/null 2>&1; then
-            DC="docker compose"
-          elif docker-compose version >/dev/null 2>&1; then
-            DC="docker-compose"
-          else
-            echo "ERROR: Docker Compose is not installed." >&2
-            exit 1
-          fi
-
-          # 部署
+      
+          # 5) 清理遗留的 deploy 目录（可选）
+          rm -rf deploy || true
+      
+          # 6) 部署
           $DC pull
           $DC up -d --remove-orphans
           docker image prune -f
