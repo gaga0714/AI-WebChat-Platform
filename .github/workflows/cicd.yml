@@ -1,4 +1,4 @@
-name: CI/CD (aiwebchat: Vue3 + Proxy)
+name: "CI/CD (aiwebchat: Vue3 + Proxy)"
 
 on:
   push:
