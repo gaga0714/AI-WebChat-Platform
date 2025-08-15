@@ -60,7 +60,7 @@ jobs:
           PROXY_IMAGE=${{ env.PROXY_IMAGE }}
           EOF
 
-      # --- 预写 known_hosts（避免首次连接交互，带 IPv4/IPv6 回退 + 重试） ---
+      # --- known_hosts，避免首次连接交互 ---
       - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -68,19 +68,19 @@ jobs:
           || ssh-keyscan -6 -p ${{ secrets.SSH_PORT }} -T 15 ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null \
           || (sleep 3 && ssh-keyscan -4 -p ${{ secrets.SSH_PORT }} -T 15 ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts)
 
-      # --- 写入私钥文件（供原生 ssh 使用）
+      # --- 写入私钥（供原生 ssh 使用）
       - name: Write SSH private key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/aiwebchat_key
           chmod 600 ~/.ssh/aiwebchat_key
 
-      # --- 确保远端目录存在（避免 scp 报错或上传到别处）
+      # --- 确保远端目录存在
       - name: Ensure target dir on server
         run: |
           ssh -i ~/.ssh/aiwebchat_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /opt/aiwebchat"
 
-      # --- 上传到服务器 /opt/aiwebchat （去掉 deploy/ 这一层）
+      # --- 上传到服务器 /opt/aiwebchat（去掉 deploy/ 这一层）
       - name: Upload deploy bundle to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -92,7 +92,7 @@ jobs:
           target: "/opt/aiwebchat"
           strip_components: 1
 
-      # --- 使用原生 ssh 进行部署（镜像加速 + 超时扩展 + 服务器登录） ---
+      # --- 部署（原生 ssh；镜像加速 + 超时扩展；无 docker login） ---
       - name: Deploy on server (native ssh)
         run: |
           ssh -i ~/.ssh/aiwebchat_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'EOF'
@@ -100,7 +100,7 @@ jobs:
           cd /opt/aiwebchat
           echo "[server] files in /opt/aiwebchat:"
           ls -la
-            
+
           # 0) 确保 Docker 已安装并启动
           if ! command -v docker >/dev/null 2>&1; then
             echo "[server] installing docker..."
@@ -110,8 +110,8 @@ jobs:
             echo "[server] starting docker..."
             systemctl enable --now docker || service docker start
           fi
-            
-          # 1) 写入合法的 daemon.json（无注释；含多个镜像加速器）
+
+          # 1) 合法 daemon.json（镜像加速器）
           mkdir -p /etc/docker
           cp /etc/docker/daemon.json /etc/docker/daemon.json.bak 2>/dev/null || true
           cat >/etc/docker/daemon.json <<'JSON'
@@ -122,25 +122,15 @@ jobs:
             ]
           }
           JSON
-            
-          # 2) 重启 Docker 并等待就绪
+
           systemctl daemon-reload
           systemctl restart docker
           for i in {1..20}; do docker info >/dev/null 2>&1 && break; sleep 1; done
-            
+
           echo "[server] Registry Mirrors in use:"
           docker info | awk '/Registry Mirrors/{flag=1;print;next} /Live Restore Enabled/{flag=0} flag'
-            
-          # 3) 服务器侧登录 Docker Hub（避免速率限制 & 认证失败）
-          echo "[server] docker login to Docker Hub..."
-          docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' -p '${{ secrets.DOCKERHUB_TOKEN }}' || true
-            
-          # 4) 写入 DeepSeek KEY（由 Runner 注入）
-          cat > api.env <<'EOT'
-          DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
-          EOT
-            
-          # 5) 选择 compose 命令
+
+          # 2) 选择 compose 命令
           if docker compose version >/dev/null 2>&1; then
             DC="docker compose"
           elif command -v docker-compose >/dev/null 2>&1; then
@@ -153,13 +143,18 @@ jobs:
             else
               apt-get install -y docker-compose || true
               DC="docker-compose"
-            end
+            fi
           fi
-            
-          # 6) 拉取与启动（延长客户端/HTTP超时）
+
+          # 3) 写入 DeepSeek KEY
+          cat > api.env <<'EOT'
+          DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+          EOT
+
+          # 4) 拉取与启动（延长客户端/HTTP超时）
           export DOCKER_CLIENT_TIMEOUT=300
           export COMPOSE_HTTP_TIMEOUT=300
-            
+
           $DC pull
           $DC up -d --remove-orphans
           docker image prune -f
