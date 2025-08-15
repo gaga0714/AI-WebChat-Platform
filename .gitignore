@@ -28,8 +28,3 @@ src/config/key.js
 
 stats.html
 
-.github/workflows/main.yml
-
-.dockerignore
-
-Dockerfile
