@@ -2,9 +2,9 @@
 // DeepSeek配置文件
 // API配置
 export const API_CONFIG = {
-    baseURL: "https://api.deepseek.com",
-    apiKey: process.env.DEEPSEEK_API_KEY, // 换成自己的apiKey
-    dangerouslyAllowBrowser: true
+    baseURL: "/api/deepseek",
+    apiKey: "", // 换成自己的apiKey
+    dangerouslyAllowBrowser: false
 };
 
 // 模型配置

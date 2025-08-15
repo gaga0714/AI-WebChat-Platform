@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  web:
+    image: ${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest
+    container_name: aiwebchat-web
+    ports:
+      - "10003:80"           # 对外端口
+    restart: unless-stopped
+    depends_on:
+      - proxy
+
+  proxy:
+    image: ${PROXY_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-proxy}:latest
+    container_name: aiwebchat-proxy
+    restart: unless-stopped
+    env_file:
+      - api.env              # 仅在服务器本地，包含 DEEPSEEK_API_KEY
