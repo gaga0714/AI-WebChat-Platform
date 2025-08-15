@@ -60,7 +60,7 @@ jobs:
           PROXY_IMAGE=${{ env.PROXY_IMAGE }}
           EOF
 
-      # --- 预写入 known_hosts，避免首次连接交互；IPv4/IPv6 回退 + 重试 ---
+      # --- 预写 known_hosts，避免首次连接交互（带 IPv4/IPv6 回退 + 重试） ---
       - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -76,7 +76,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          host_fingerprint: "SHA256:Typemf0rkkIazygQ2RdUBBSEsfuNh5gd5R3hU13ArP8"
           source: "deploy/*"
           target: "/opt/aiwebchat"
 
@@ -88,7 +87,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          host_fingerprint: "SHA256:Typemf0rkkIazygQ2RdUBBSEsfuNh5gd5R3hU13ArP8"
           script: |
             set -e
             cd /opt/aiwebchat
