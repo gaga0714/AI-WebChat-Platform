@@ -185,7 +185,7 @@ jobs:
             local web="${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest"
             local proxy="${PROXY_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-proxy}:latest"
             local mirrors=(
-              "<你的阿里云加速器ID>.mirror.aliyuncs.com"
+              "gg0kfs89.mirror.aliyuncs.com"
               "docker.m.daocloud.io"
               "dockerproxy.com"
               "hub.uuuadc.top"
