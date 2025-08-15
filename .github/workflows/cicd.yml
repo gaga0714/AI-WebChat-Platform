@@ -152,10 +152,59 @@ jobs:
           EOT
 
           # 4) 拉取与启动（延长客户端/HTTP超时）
-          export DOCKER_CLIENT_TIMEOUT=300
-          export COMPOSE_HTTP_TIMEOUT=300
-
-          $DC pull
+          if [ -f .env ]; then
+            set -a; . ./.env; set +a
+          fi
+          if [ -n "${DOCKERHUB_USERNAME:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin || true
+          fi
+                      
+          export DOCKER_CLIENT_TIMEOUT=600
+          export COMPOSE_HTTP_TIMEOUT=600
+                      
+          pull_with_retry() {
+            local tries=5
+            for ((i=1; i<=tries; i++)); do
+              echo "[server] compose pull try #$i"
+              if $DC pull; then
+                return 0
+              fi
+              sleep $((10*i))
+            done
+            return 1
+          }
+                      
+          mirror_pull_and_retag() {
+            local web="${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest"
+            local proxy="${PROXY_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-proxy}:latest"
+            local mirrors=(
+              "docker.m.daocloud.io"
+              "dockerproxy.com"
+              "hub.uuuadc.top"
+              "dockerpull.com"
+            )
+            for m in "${mirrors[@]}"; do
+              echo "[server] try mirror: $m"
+              for img in "$web" "$proxy"; do
+                local mirrored="$m/${img}"
+                echo "[server] pulling $mirrored"
+                if docker pull "$mirrored"; then
+                  echo "[server] retag $mirrored -> $img"
+                  docker tag "$mirrored" "$img" || true
+                else
+                  echo "[server] pull from $m failed for $mirrored"
+                fi
+              done
+            done
+          }
+                      
+          if pull_with_retry; then
+            echo "[server] compose pull ok"
+          else
+            echo "[server] compose pull failed, try mirrors + retag ..."
+            mirror_pull_and_retag
+          fi
+                      
           $DC up -d --remove-orphans
           docker image prune -f
-          EOF
+                      
