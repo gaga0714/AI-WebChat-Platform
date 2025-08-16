@@ -3,7 +3,7 @@ services:
     image: ${WEB_IMAGE:-${DOCKERHUB_USERNAME}/aiwebchat-web}:latest
     container_name: aiwebchat-web
     ports:
-      - "10003:80"           # 对外端口
+      - "10004:80"           # 对外端口
     restart: unless-stopped
     depends_on:
       - proxy
