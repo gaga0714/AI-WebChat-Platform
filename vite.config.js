@@ -14,6 +14,14 @@ export default defineConfig({
       ext: '.gz',
     }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787', // 代理到本地的 Express 服务器
+        changeOrigin: true,
+      },
+    },
+  },
   css: {
     preprocessorOptions: {
       scss: {},
