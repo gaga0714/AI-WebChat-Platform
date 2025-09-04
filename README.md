@@ -46,7 +46,14 @@ http://gaga0714.site:10003/
 ## 效果图
 ![alt text](/assets/image.png)
 ![alt text](/assets/image1.jpg)
-![alt text](/assets/image2.png)
 
 ## 自动部署服务器
 使用GitHub Actions （持续集成和持续交付（CI/CD）平台）
+
+## 优化体积
+优化前：
+![alt text](/assets/image2.png)
+![alt text](image-1.png)
+优化后：
+![alt text](image-2.png)
+![alt text](image.png)
