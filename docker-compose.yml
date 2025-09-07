@@ -1,5 +1,6 @@
-# 本地/服务器编排
+# 本地/服务器通用编排（本地可直接 docker compose up -d）
 version: "3.9"
+
 services:
   api:
     image: ghcr.io/gaga0714/aiwebchat-api:latest
@@ -8,10 +9,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8787
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}   # 从服务器上的 .env 注入
-      - DEEPSEEK_BALANCE_URL=${DEEPSEEK_BALANCE_URL:-} # 可选
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BALANCE_URL=${DEEPSEEK_BALANCE_URL}
     networks:
       - appnet
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8787/health', r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    # 若你的 docker compose 版本较新，可启用；否则忽略该字段
+    pull_policy: always
 
   web:
     image: ghcr.io/gaga0714/aiwebchat-web:latest
@@ -20,9 +28,10 @@ services:
     depends_on:
       - api
     ports:
-      - "10004:80"   # 对外暴露 80
+      - "10004:80"
     networks:
       - appnet
+    pull_policy: always
 
 networks:
   appnet:

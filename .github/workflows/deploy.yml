@@ -15,6 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Setup Node (for pnpm if needed)
         uses: actions/setup-node@v4
         with:
@@ -34,6 +37,8 @@ jobs:
           file: ./docker/Dockerfile.web
           push: true
           tags: ghcr.io/${{ secrets.GHCR_USERNAME }}/aiwebchat-web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build & Push API image
         uses: docker/build-push-action@v6
@@ -42,6 +47,8 @@ jobs:
           file: ./docker/Dockerfile.api
           push: true
           tags: ghcr.io/${{ secrets.GHCR_USERNAME }}/aiwebchat-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
@@ -57,12 +64,16 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            # 部署目录（自定义）
-            APP_DIR=/opt/aiwebchat
-            mkdir -p $APP_DIR
-            cd $APP_DIR
 
-            # 如果第一次部署，创建 docker-compose.yml 和 .env
+            # 1) 登录 GHCR（即便镜像是 public，提前登录有助于后续改为私有时无缝切换）
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            # 2) 部署目录
+            APP_DIR=/opt/aiwebchat
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+
+            # 3) 首次写入 docker-compose.yml（已包含 pull_policy 与 healthcheck）
             if [ ! -f docker-compose.yml ]; then
               cat > docker-compose.yml <<'COMPOSE'
             version: "3.9"
@@ -78,6 +89,14 @@ jobs:
                   - DEEPSEEK_BALANCE_URL=${DEEPSEEK_BALANCE_URL}
                 networks:
                   - appnet
+                # 健康检查：要求镜像内有 Node（你的后端镜像是 node:20-alpine，满足）
+                healthcheck:
+                  test: ["CMD", "node", "-e", "require('http').get('http://localhost:8787/health', r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+                  interval: 15s
+                  timeout: 3s
+                  retries: 5
+                # 新版 compose 支持；旧版可忽略，由 --pull always 保底
+                pull_policy: always
 
               web:
                 image: ghcr.io/${{ secrets.GHCR_USERNAME }}/aiwebchat-web:latest
@@ -89,6 +108,7 @@ jobs:
                   - "10004:80"
                 networks:
                   - appnet
+                pull_policy: always
 
             networks:
               appnet:
@@ -96,16 +116,22 @@ jobs:
             COMPOSE
             fi
 
+            # 4) 首次写入 .env（若不存在）
             if [ ! -f .env ]; then
               cat > .env <<'ENVVARS'
             DEEPSEEK_API_KEY=sk-REPLACE_ME
-            # 可选：如果已确定余额接口
+            # 可选：余额接口
             # DEEPSEEK_BALANCE_URL=https://api.deepseek.com/v1/user/balance
             ENVVARS
-              echo "请在服务器 $APP_DIR/.env 中替换 DEEPSEEK_API_KEY"
+              echo "请编辑服务器 $APP_DIR/.env，替换 DEEPSEEK_API_KEY"
             fi
 
-            # 拉取最新镜像并重启
+            # 5) 拉取最新镜像并以“总是拉取”方式启动
             docker compose pull
-            docker compose up -d
+            docker compose up -d --pull always
+
+            # 6) 清理悬空镜像
             docker image prune -f
+
+            # 7) 简单输出运行状态
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"

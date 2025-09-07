@@ -1,14 +1,18 @@
-# 后端镜像（Node运行）
-# docker/Dockerfile.api
 FROM node:20-alpine
 WORKDIR /app
 
-# 仅安装生产依赖
-COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.15.4 --activate
+
+# 先只拷贝依赖清单
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* pnpm-workspace.yaml* ./
+
+# 只装生产依赖
 RUN pnpm install --prod --frozen-lockfile
 
-# 拷贝源码（仅后端和运行所需文件；也可 COPY . . 视项目而定）
+# 批准构建脚本（v10 需要；v8 忽略）
+RUN pnpm approve-builds --all || true
+
+# 拷贝后端源码
 COPY server ./server
 
 ENV NODE_ENV=production
