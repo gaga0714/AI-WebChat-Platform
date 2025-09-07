@@ -19,19 +19,19 @@ http://gaga0714.site:10004/
     - 安装依赖：
 
         ```bash
-        npm install 
+        pnpm install 
         ```
 
     - 启动项目：
 
         ```bash
-        npm run dev
+        pnpm run dev
         ```
 
     - 构建项目：
 
         ```bash
-        npm run build
+        pnpm run build
         ```
 
     - 部署构建后的文件到服务器
