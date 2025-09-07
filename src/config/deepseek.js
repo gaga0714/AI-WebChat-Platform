@@ -1,11 +1,11 @@
-import { apiKey } from "./key";
+// import { apiKey } from "./key";
 // DeepSeek配置文件
 // API配置
-export const API_CONFIG = {
-    baseURL: "/api/deepseek",
-    apiKey: apiKey, // 换成自己的apiKey
-    dangerouslyAllowBrowser: false
-};
+// export const API_CONFIG = {
+//     baseURL: "/api/deepseek",
+//     apiKey: apiKey, // 换成自己的apiKey
+//     dangerouslyAllowBrowser: false
+// };
 
 // 模型配置
 export const MODEL_CONFIG = {
