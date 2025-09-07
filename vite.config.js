@@ -2,10 +2,14 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 import viteCompression from 'vite-plugin-compression';
+import { startOut } from "./src/plugins/startOut";
+import { buildUp } from "./src/plugins/buildUp";
 
 export default defineConfig({
   plugins: [
     vue(),
+    startOut(),
+    buildUp(),
     viteCompression({
       verbose: true,
       disable: false,

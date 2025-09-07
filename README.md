@@ -57,3 +57,11 @@ http://gaga0714.site:10003/（暂停服务，修改配置中...请见谅）
 优化后：
 ![alt text](image-2.png)
 ![alt text](image.png)
+
+## 自定义vite插件
+`npm run dev`:
+
+![alt text](image-4.png)
+`npm run build`:
+
+![alt text](image-3.png)
