@@ -4,7 +4,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.15.4 --activate
 
 # 先只拷贝依赖清单
-COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* pnpm-workspace.yaml* ./
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock*  ./
 
 # 只装生产依赖
 RUN pnpm install --prod --frozen-lockfile
