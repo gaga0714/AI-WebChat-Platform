@@ -1,0 +1,18 @@
+# 后端镜像（Node运行）
+# docker/Dockerfile.api
+FROM node:20-alpine
+WORKDIR /app
+
+# 仅安装生产依赖
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN pnpm install --prod --frozen-lockfile
+
+# 拷贝源码（仅后端和运行所需文件；也可 COPY . . 视项目而定）
+COPY server ./server
+
+ENV NODE_ENV=production
+ENV PORT=8787
+EXPOSE 8787
+
+CMD ["node", "server/server.js"]

@@ -44,24 +44,26 @@ http://gaga0714.site:10003/（暂停服务，修改配置中...请见谅）
     ```
 
 ## 效果图
-![alt text](/assets/image.png)
-![alt text](/assets/image1.jpg)
+![alt text](/assets/show_2.png)
+![alt text](/assets/show_1.jpg)
 
 ## 自动部署服务器
 使用GitHub Actions （持续集成和持续交付（CI/CD）平台）
 
 ## 优化体积
 优化前：
-![alt text](/assets/image2.png)
-![alt text](image-1.png)
+![alt text](/assets/vis_pre.png)
+![alt text](/assets/chunk_pre.png)
+
 优化后：
-![alt text](image-2.png)
-![alt text](image.png)
+![alt text](/assets/vid_bac.png)
+![alt text](/assets/chunk_bac.png)
 
 ## 自定义vite插件
 `npm run dev`:
 
-![alt text](image-4.png)
+![alt text](/assets/dev_vite_plugin.png)
+
 `npm run build`:
 
-![alt text](image-3.png)
+![alt text](/assets/build_vite_plugin.png)

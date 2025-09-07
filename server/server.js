@@ -25,12 +25,12 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Invalid request: messages required' })
     }
 
-    console.log('[Proxy] -> DeepSeek', {
-      model,
-      hasStream: !!stream,
-      firstRole: messages[0]?.role,
-      lastRole: messages[messages.length - 1]?.role
-    })
+    // console.log('[Proxy] -> DeepSeek', {
+    //   model,
+    //   hasStream: !!stream,
+    //   firstRole: messages[0]?.role,
+    //   lastRole: messages[messages.length - 1]?.role
+    // })
 
     // DeepSeek Chat Completions（按你前面可用的地址）
     const upstream = await fetch('https://api.deepseek.com/chat/completions', {

@@ -1,0 +1,29 @@
+# 本地/服务器编排
+version: "3.9"
+services:
+  api:
+    image: ghcr.io/gaga0714/aiwebchat-api:latest
+    container_name: aiwebchat-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=8787
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}   # 从服务器上的 .env 注入
+      - DEEPSEEK_BALANCE_URL=${DEEPSEEK_BALANCE_URL:-} # 可选
+    networks:
+      - appnet
+
+  web:
+    image: ghcr.io/gaga0714/aiwebchat-web:latest
+    container_name: aiwebchat-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "10004:80"   # 对外暴露 80
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge

@@ -1,8 +1,10 @@
 node_modules
 dist
 .git
-.github
 .gitignore
 Dockerfile
-docker-compose*.yml
-proxy/node_modules
+docker-compose.yml
+.github
+.vscode
+.idea
+*.log
