@@ -2,18 +2,17 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# 固定 pnpm 版本（与本地/CI一致，举例 8.15.4；若坚持 v10，可用 10.x.y）
-RUN corepack enable && corepack prepare pnpm@8.15.4 --activate
+# 与本地一致使用 pnpm v10（示例 10.7.1；如本地不同，请改成你的确切版本）
+RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
-# 先只拷贝依赖清单，利用缓存
+# 仅拷贝依赖清单（不拷贝 pnpm-workspace.yaml，避免误触发 workspace）
 COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
 
-# 安装依赖（严格用锁文件）
+# 安装依赖（严格使用锁文件）
 RUN pnpm install --frozen-lockfile
 
-# pnpm v10 安全机制：显式批准需要运行的安装脚本（非交互）
-# （pnpm@8 会忽略这行，不会报错；所以这行放着也安全）
-RUN pnpm approve-builds --all || true
+# 批准需要执行安装脚本的依赖（pnpm v10 安全机制；若已在 .npmrc 配置了 only-built-dependencies，这行也安全）
+RUN pnpm approve-builds --all
 
 # 再拷贝源码
 COPY . .
