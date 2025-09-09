@@ -4,7 +4,7 @@ import MessageComp from './components/messageComp.vue'
 import { Promotion, Delete, EditPen, Brush, Plus, Fold, Expand } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import MobileDetect from 'mobile-detect'
-import { MODEL_CONFIG, STORAGE_KEYS } from '@/config/deepseek' // 仅保留需要的本地配置
+import { MODEL_CONFIG, STORAGE_KEYS } from '@/config/deepseek' 
 
 // —— 响应式数据
 const isMobile = ref(false)
@@ -12,16 +12,16 @@ const sessionList = ref([])
 const activeIndex = ref(-1)
 const editIndex = ref(-1)
 const totalAmt = ref(0)
-const queryKeys = ref('')
-const loading = ref(false)
-const messageRef = ref(null)
+const queryKeys = ref('')//输入内容
+const loading = ref(false)//是否处于请求中（防止重复发送请求）
+const messageRef = ref(null)//自组件messageComp的引用，用来调用scrollBottom，使消息区始终滚动到底部
 const isSidebarCollapsed = ref(false)
 
 const toggleSidebar = () => { isSidebarCollapsed.value = !isSidebarCollapsed.value }
 
 const queryInfos = ref({
   messages: [],
-  model: 'deepseek-chat',   // 固定 deepseek
+  model: 'deepseek-chat',
   ...MODEL_CONFIG
 })
 
@@ -281,7 +281,7 @@ onMounted(async () => {
         <div class="input-area" :class="isMobile ? 'left-space' : ''">
           <el-input v-model="queryKeys" id="keyInput" :autosize="{minRows:2,maxRows:4}" type="textarea"
             placeholder="请输入内容" show-word-limit
-            @keydown.enter.native="(e) => { if (e.isComposing || loading) return; handleRequest(); }" />
+            @keydown.enter.prevent="(e) => { if (e.isComposing || loading) return; handleRequest(); }" />
           <el-button style="height: 40px" type="primary" @click="handleRequest" :disabled="!queryKeys" :loading="loading">
             <el-icon><Promotion /></el-icon>
           </el-button>

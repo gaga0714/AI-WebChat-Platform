@@ -27,7 +27,7 @@ const md = new MarkdownIt({
       return `<pre><code>${md.utils.escapeHtml(str)}</code></pre>`
     }
   }
-})
+}).enable(['table'])
 
 const html = ref('')
 watch(() => props.source, (v) => {
