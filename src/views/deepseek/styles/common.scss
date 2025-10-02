@@ -1,4 +1,8 @@
 // Neutral & Stylish Theme - Lavender + Indigo + Clean Glassmorphism
+//断点
+$bp-hide-desc: 1100px;
+$bp-collapse: 1200px;
+$bp-mobile: 768px;
 
 .add-btn {
   width: 100%;
@@ -40,6 +44,61 @@
       color: rgba(60, 42, 96, 0.7);
     }
   }
+  //自动折叠
+  @media(max-width:$bp-collapse){
+    .grid-box{
+      grid-template-columns: 60px auto !important;
+    }
+  }
+
+  // @media (max-width:$bp-hide-desc) {
+  //   .tips .desc{display: none !important;}
+  // }
+
+   /* 平板/小屏桌面优化 */
+  @media (max-width: 992px) {
+    .container {
+      .message-area {
+        width: 100%;               // 不再用固定 calc
+        padding: 8px 16px 0 16px;  // 收紧左右边距
+      }
+      .user-tokens {
+        padding: 0 16px;
+      }
+      .input-area {
+        margin-left: 16px;
+        margin-right: 16px;
+        gap: 8px;
+      }
+    }
+  }
+
+
+  /* 移动端（<=768px）优化：与 isMobile 呼应 */
+  @media (max-width: $bp-mobile) {
+    .grid-space-between {
+      display: block; // 左侧栏本来就 v-if 隐藏，这里让容器更自由
+    }
+
+    .container {
+      .tips {
+        padding: 0 12px;
+        .title { font-size: 16px; }
+      }
+      .message-area {
+        padding: 8px 12px 0 12px;
+      }
+      .input-area {
+        margin: 0 12px 16px 12px;
+      }
+    }
+
+    :deep(.el-button) {
+      border-radius: 10px;
+      margin-right: 6px;
+    }
+  }
+
 
   .grid-box {
     display: grid;
@@ -160,35 +219,50 @@
       font-size: 14px;
       color: #6d4cb3;
       user-select: none;
+      margin-bottom: 10px;
     }
 
     .left-space {
       margin-left: 8px;
     }
 
+    // .input-area {
+    //   place-items: center;
+    //   display: grid;
+    //   grid-template-columns: auto 120px 80px;
+    //   grid-gap: 10px;
+    //   box-sizing: content-box;
+    //   margin-left: 70px;
+    //   margin-right: 60px;
+    //   margin-bottom: 40px;
+    //   border-radius: 12px;
+    //   z-index: 10;
+    // }
     .input-area {
-      place-items: center;
-      display: grid;
-      grid-template-columns: auto 120px 80px;
-      grid-gap: 10px;
-      box-sizing: content-box;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      box-sizing: border-box;
       margin-left: 70px;
       margin-right: 60px;
-      margin-bottom: 40px;
-      background-color: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
+      margin-bottom: 60px;
+      // border-radius: 15px;
       z-index: 10;
     }
   }
-}
+
 
 
 :deep(.el-button) {
+  // align-self: stretch;
   background-color: #8067b6;
+  // height: 50px;
+  // width: 80px;
+
   border: none;
   color: #fff;
   border-radius: 12px;
+  margin-right: 10px;
   transition: all 0.3s ease;
 
   &:hover {
@@ -215,7 +289,9 @@
 :deep(.el-textarea__inner) {
   resize: none;
   color:#202123;
-  border-radius: 5px;
+  background-color: rgba(255, 255, 255, 0.7);
+  // backdrop-filter: blur(10px);
+  border-radius: 15px;
   --el-input-focus-border-color:#772ba8;
   --el-input-border-color:#cdd0d7;
   --el-input-hover-border-color:#b394cf;
@@ -259,3 +335,6 @@
     }
   }
 }
+}
+
+

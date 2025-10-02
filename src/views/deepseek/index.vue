@@ -1,10 +1,22 @@
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, nextTick, onBeforeUnmount,computed} from 'vue'
 import MessageComp from './components/messageComp.vue'
 import { Promotion, Delete, EditPen, Brush, Plus, Fold, Expand } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import MobileDetect from 'mobile-detect'
 import { MODEL_CONFIG, STORAGE_KEYS } from '@/config/deepseek' 
+//断点
+const BREAKPOINTS={
+  hideDesc:1100,//隐藏顶部文字
+  collapseSiderbar:1200,//自动折叠侧边栏
+  mobile:768//移动端
+}
+
+const viewportWidth=ref(window.innerWidth);//网页内容部分高度
+let resizeTimer=null;
+const userToggledSider=ref(false);//用户是否手动点过折叠按钮
+
+
 
 // —— 响应式数据
 const isMobile = ref(false)
@@ -17,7 +29,42 @@ const loading = ref(false)//是否处于请求中（防止重复发送请求）
 const messageRef = ref(null)//自组件messageComp的引用，用来调用scrollBottom，使消息区始终滚动到底部
 const isSidebarCollapsed = ref(false)
 
-const toggleSidebar = () => { isSidebarCollapsed.value = !isSidebarCollapsed.value }
+
+const updateViewportWidth=()=>{
+  //节流，避免频繁触发
+  if(resizeTimer) return;
+  resizeTimer=setTimeout(()=>{
+    viewportWidth.value=window.innerWidth;
+    if (resizeTimer) {
+      clearTimeout(resizeTimer)
+    }
+    resizeTimer=null;
+  },80)
+}
+
+watch(viewportWidth,(w)=>{
+  //自动折叠
+  if(!userToggledSider.value){
+    isSidebarCollapsed.value=w<BREAKPOINTS.collapseSiderbar;
+  }
+  //宽度足够大时自动展开
+  if(!userToggledSider.value&&w>=BREAKPOINTS.collapseSiderbar){
+    isSidebarCollapsed.value=false;
+  }
+  //移动端
+  isMobile.value=w<BREAKPOINTS.mobile;
+})
+
+//顶部描述文字控制
+const showTopDesc=computed(()=>{
+  return !isMobile.value&&viewportWidth.value>=BREAKPOINTS.hideDesc;
+})
+
+
+const toggleSidebar = () => { 
+  userToggledSider.value=true;//如果用户手动点展开，就不被自动折叠覆盖
+  isSidebarCollapsed.value = !isSidebarCollapsed.value 
+}
 
 const queryInfos = ref({
   messages: [],
@@ -233,6 +280,15 @@ onMounted(async () => {
   isMobile.value = md.mobile()
   await nextTick()
   messageRef.value?.scrollBottom()
+  window.addEventListener('resize',updateViewportWidth);
+  updateViewportWidth();
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateViewportWidth)
+  if (resizeTimer) {
+    clearTimeout(resizeTimer)
+    resizeTimer = null
+  }
 })
 </script>
 
@@ -266,7 +322,7 @@ onMounted(async () => {
       <div class="container">
         <div class="tips">
           <div class="title">{{ queryInfos.model }}</div>
-          <div class="desc" v-if="!isMobile">本网站采用本地缓存模式运行，不会留存任何涉及个人的信息数据，请放心使用。</div>
+          <div class="desc" v-if="showTopDesc">本网站采用本地缓存模式运行，不会留存任何涉及个人的信息数据，请放心使用。</div>
           <div @click="handleClearStorage" v-else class="pointer">清空</div>
         </div>
 
@@ -282,8 +338,8 @@ onMounted(async () => {
           <el-input v-model="queryKeys" id="keyInput" :autosize="{minRows:2,maxRows:4}" type="textarea"
             placeholder="请输入内容" show-word-limit
             @keydown.enter.prevent="(e) => { if (e.isComposing || loading) return; handleRequest(); }" />
-          <el-button style="height: 40px" type="primary" @click="handleRequest" :disabled="!queryKeys" :loading="loading">
-            <el-icon><Promotion /></el-icon>
+          <el-button style="height: 50px;width: 50px;border-radius: 50%;margin-right: 50px;" type="primary" @click="handleRequest" :disabled="!queryKeys" :loading="loading">
+            <el-icon :size="26"><Promotion /></el-icon>
           </el-button>
         </div>
       </div>
