@@ -43,6 +43,16 @@ $bp-mobile: 768px;
       font-size: 14px;
       color: rgba(60, 42, 96, 0.7);
     }
+
+    .agent-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      .agent-loading-hint {
+        font-size: 12px;
+        color: rgba(60, 42, 96, 0.8);
+      }
+    }
   }
   //自动折叠
   @media(max-width:$bp-collapse){

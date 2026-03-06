@@ -28,6 +28,7 @@ const queryKeys = ref('')//输入内容
 const loading = ref(false)//是否处于请求中（防止重复发送请求）
 const messageRef = ref(null)//自组件messageComp的引用，用来调用scrollBottom，使消息区始终滚动到底部
 const isSidebarCollapsed = ref(false)
+const agentMode = ref(false) // Agent 模式：开启后使用 Function Calling + Tavily 联网搜索
 
 
 const updateViewportWidth=()=>{
@@ -195,9 +196,14 @@ async function streamDeepseek({ model, messages, onDelta }) {
   const resp = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-    body: JSON.stringify({ model, messages, stream: true })
+    body: JSON.stringify({ model, messages, stream: true, useTools: agentMode.value })
   })
-  if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`)
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}))
+    const msg = data?.message || data?.error || `HTTP ${resp.status}`
+    throw new Error(msg)
+  }
+  if (!resp.body) throw new Error('Empty response')
 
   const reader = resp.body.getReader()
   const decoder = new TextDecoder('utf-8')
@@ -324,6 +330,12 @@ onBeforeUnmount(() => {
           <div class="title">{{ queryInfos.model }}</div>
           <div class="desc" v-if="showTopDesc">本网站采用本地缓存模式运行，不会留存任何涉及个人的信息数据，请放心使用。</div>
           <div @click="handleClearStorage" v-else class="pointer">清空</div>
+          <div class="agent-toggle">
+            <el-tooltip content="开启后可使用 Tavily 联网搜索实时信息（天气、新闻等）" placement="bottom">
+              <el-switch v-model="agentMode" active-text="Agent" inactive-text="普通" />
+            </el-tooltip>
+            <span v-if="loading && agentMode" class="agent-loading-hint">正在使用联网搜索…</span>
+          </div>
         </div>
 
         <div class="message-area">
