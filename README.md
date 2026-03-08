@@ -1,6 +1,6 @@
 ## 鸭棚子对话厅
 
-基于 Vue 3 部署 `DeepSeek api`集成的`Web AI`对话框，支持代码高亮显示，针对移动端进行了简洁适配。
+基于 Vue 3 + DeepSeek API 的 Web AI 对话应用，支持 **AI Agent**（Function Calling + Tavily 联网搜索）、流式回复、代码高亮与移动端适配。
 
 ## 服务器上线
 http://gaga0714.site:10004/
@@ -15,7 +15,10 @@ http://gaga0714.site:10004/
 
     `ApiKey` 获取网址：https://platform.deepseek.com/usage
 
-2.  **运行项目：**
+    `TAVILY_API_KEY` Tavily API Key，开启 Agent 联网搜索时必填：https://tavily.com
+
+
+1.  **运行项目：**
     - 安装依赖：
 
         ```bash
@@ -36,7 +39,7 @@ http://gaga0714.site:10004/
 
     - 部署构建后的文件到服务器
 
-3.  **vite-bundle-visualizer**
+2.  **vite-bundle-visualizer**
     官网链接：https://www.npmjs.com/package/vite-bundle-visualizer
     - 可视化工具计算各模块大小
     ```js
