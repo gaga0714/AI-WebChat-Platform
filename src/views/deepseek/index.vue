@@ -1,300 +1,35 @@
 <script setup>
-import { ref, watch, onMounted, nextTick, onBeforeUnmount,computed} from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import MessageComp from './components/messageComp.vue'
 import { Promotion, Delete, EditPen, Brush, Plus, Fold, Expand } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import MobileDetect from 'mobile-detect'
-import { MODEL_CONFIG, STORAGE_KEYS } from '@/config/deepseek' 
-//断点
-const BREAKPOINTS={
-  hideDesc:1100,//隐藏顶部文字
-  collapseSiderbar:1200,//自动折叠侧边栏
-  mobile:768//移动端
-}
+import { useResponsive } from './composables/useResponsive'
+import { useSessionManager } from './composables/useSessionManager'
+import { useStreamChat } from './composables/useStreamChat'
+import { useBalance } from './composables/useBalance'
 
-const viewportWidth=ref(window.innerWidth);//网页内容部分高度
-let resizeTimer=null;
-const userToggledSider=ref(false);//用户是否手动点过折叠按钮
+const queryKeys = ref('')
+const messageRef = ref(null)
 
+const { isMobile, isSidebarCollapsed, showTopDesc, toggleSidebar } = useResponsive()
+const { totalAmt, fetchBalance } = useBalance()
 
+const {
+  sessionList, activeIndex, editIndex, queryInfos,
+  init: initSessions, handleAddSession, handleDeleteSession,
+  handleClearSession, handleFocusInput, handleChangeSessionIndex, handleClearStorage
+} = useSessionManager(ref(false), messageRef)
 
-// —— 响应式数据
-const isMobile = ref(false)
-const sessionList = ref([])
-const activeIndex = ref(-1)
-const editIndex = ref(-1)
-const totalAmt = ref(0)
-const queryKeys = ref('')//输入内容
-const loading = ref(false)//是否处于请求中（防止重复发送请求）
-const messageRef = ref(null)//自组件messageComp的引用，用来调用scrollBottom，使消息区始终滚动到底部
-const isSidebarCollapsed = ref(false)
-const agentMode = ref(false) // Agent 模式：开启后使用 Function Calling + Tavily 联网搜索
+const { loading, agentMode, handleRequest, handleRetry } = useStreamChat(
+  queryInfos, sessionList, activeIndex, messageRef
+)
 
+const doSend = () => handleRequest(queryKeys, handleAddSession)
 
-const updateViewportWidth=()=>{
-  //节流，避免频繁触发
-  if(resizeTimer) return;
-  resizeTimer=setTimeout(()=>{
-    viewportWidth.value=window.innerWidth;
-    if (resizeTimer) {
-      clearTimeout(resizeTimer)
-    }
-    resizeTimer=null;
-  },80)
-}
-
-watch(viewportWidth,(w)=>{
-  //自动折叠
-  if(!userToggledSider.value){
-    isSidebarCollapsed.value=w<BREAKPOINTS.collapseSiderbar;
-  }
-  //宽度足够大时自动展开
-  if(!userToggledSider.value&&w>=BREAKPOINTS.collapseSiderbar){
-    isSidebarCollapsed.value=false;
-  }
-  //移动端
-  isMobile.value=w<BREAKPOINTS.mobile;
-})
-
-//顶部描述文字控制
-const showTopDesc=computed(()=>{
-  return !isMobile.value&&viewportWidth.value>=BREAKPOINTS.hideDesc;
-})
-
-
-const toggleSidebar = () => { 
-  userToggledSider.value=true;//如果用户手动点展开，就不被自动折叠覆盖
-  isSidebarCollapsed.value = !isSidebarCollapsed.value 
-}
-
-const queryInfos = ref({
-  messages: [],
-  model: 'deepseek-chat',
-  ...MODEL_CONFIG
-})
-
-// —— 持久化
-watch(sessionList, (val) => {
-  const list = val.map((o, i) => ({
-    ...o,
-    messages: i === activeIndex.value ? queryInfos.value.messages : o.messages
-  }))
-  localStorage.setItem(STORAGE_KEYS.sessionList, JSON.stringify(list))
-}, { deep: true })
-
-watch(activeIndex, (val) => {
-  localStorage.setItem(STORAGE_KEYS.activeIndex, JSON.stringify(val))
-})
-
-// —— 工具函数
-const handleClearStorage = () => {
-  localStorage.removeItem(STORAGE_KEYS.sessionList)
-  localStorage.removeItem(STORAGE_KEYS.activeIndex)
-  queryInfos.value.messages = []
-  sessionList.value = []
-  activeIndex.value = -1
-}
-
-const initSessionList = () => {
-  sessionList.value = JSON.parse(localStorage.getItem(STORAGE_KEYS.sessionList) || '[]')
-}
-
-const initIndex = () => {
-  const listLen = JSON.parse(localStorage.getItem(STORAGE_KEYS.sessionList) || '[]').length
-  const lastIndex = JSON.parse(localStorage.getItem(STORAGE_KEYS.activeIndex) || '-1')
-  if (listLen) {
-    activeIndex.value = (lastIndex !== -1) ? lastIndex : 0
-  } else {
-    activeIndex.value = -1
-  }
-  if (activeIndex.value !== -1) {
-    queryInfos.value.messages = sessionList.value[activeIndex.value].messages || []
-  }
-}
-
-const handleAddSession = () => {
-  if (loading.value) {
-    ElMessage({ type: 'warning', message: '请当前问题查询完成后重试！' })
-    return
-  }
-  sessionList.value.push({
-    title: `对话${sessionList.value.length + 1}`,
-    crtTime: new Date(),
-    messages: []
-  })
-  queryInfos.value.messages = []
-  activeIndex.value = sessionList.value.length - 1
-}
-
-const handleDeleteSession = (index = 0) => {
-  ElMessageBox.confirm('确认删除当前对话？', '警告', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    sessionList.value.splice(index, 1)
-    if (index === activeIndex.value) {
-      activeIndex.value = sessionList.value[index] ? index : --index
-    } else if (index < activeIndex.value) {
-      activeIndex.value = --activeIndex.value
-    }
-    queryInfos.value.messages = activeIndex.value > -1 ? sessionList.value[activeIndex.value].messages : []
-    handleChangeSessionIndex(activeIndex.value)
-  }).catch(() => {})
-}
-
-const handleClearSession = (index) => {
-  sessionList.value[index].messages = []
-  queryInfos.value.messages = sessionList.value[index].messages
-  activeIndex.value = index
-}
-
-const handleFocusInput = (index) => { editIndex.value = index }
-
-const handleChangeSessionIndex = async (index) => {
-  if (loading.value) {
-    ElMessage({ type: 'warning', message: '请当前问题查询完成后重试！' })
-    return
-  }
-  activeIndex.value = index
-  queryInfos.value.messages = sessionList.value[activeIndex.value]?.messages || []
-  await nextTick()
-  messageRef.value?.scrollBottom()
-}
-
-// —— 余额：改为请求后端 /api/balance（后端用环境变量的 Key 去查）
-const initToken = async () => {
-  try {
-    const r = await fetch('/api/balance')
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
-    const data = await r.json()
-
-    // 根据返回结构取值（两种常见风格，按你实际接口调整）
-    // ① 类 OpenAI credit_grants
-    if (data?.total_granted !== undefined) {
-      const remaining = (data.total_granted || 0) - (data.total_used || 0)
-      totalAmt.value = Number((remaining || 0).toFixed(4))
-      return
-    }
-    // ② 你自己的后端风格：{ balance_infos: [{ total_balance: '123.45' }, ...] }
-    if (Array.isArray(data?.balance_infos)) {
-      let sum = 0
-      for (const o of data.balance_infos) sum += Number(o.total_balance || 0)
-      totalAmt.value = sum
-      return
-    }
-
-    totalAmt.value = 0
-  } catch (e) {
-    console.error('initToken error:', e)
-    totalAmt.value = 0
-  }
-}
-
-// —— 核心：SSE 流式读取（代理到后端 /api/chat）
-async function streamDeepseek({ model, messages, onDelta }) {
-  const resp = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-    body: JSON.stringify({ model, messages, stream: true, useTools: agentMode.value })
-  })
-  if (!resp.ok) {
-    const data = await resp.json().catch(() => ({}))
-    const msg = data?.message || data?.error || `HTTP ${resp.status}`
-    throw new Error(msg)
-  }
-  if (!resp.body) throw new Error('Empty response')
-
-  const reader = resp.body.getReader()
-  const decoder = new TextDecoder('utf-8')
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-
-    let idx
-    while ((idx = buffer.indexOf('\n')) >= 0) {
-      const line = buffer.slice(0, idx).trim()
-      buffer = buffer.slice(idx + 1)
-
-      if (!line || line.startsWith(':')) continue
-      if (!line.startsWith('data:')) continue
-
-      const payload = line.slice(5).trim()
-      if (payload === '[DONE]') return
-
-      try {
-        const json = JSON.parse(payload)
-        const delta = json?.choices?.[0]?.delta?.content || ''
-        if (delta) onDelta(delta)
-      } catch {
-        onDelta(payload) // 非 JSON 情况
-      }
-    }
-  }
-}
-
-// —— 发送请求
-const handleRequest = async () => {
-  if (!queryKeys.value) return
-  if (!sessionList.value.length) await handleAddSession()
-
-  // 1) 追加用户消息（移除 name 字段，兼容性更好）
-  queryInfos.value.messages.push({ role: 'user', content: queryKeys.value })
-  queryKeys.value = null
-  messageRef.value?.scrollBottom()
-
-  try {
-    loading.value = true
-    // 2) 预置 assistant 空消息
-    queryInfos.value.messages.push({ role: 'assistant', content: '' })
-
-    // 3) 流式追加
-    await streamDeepseek({
-      model: queryInfos.value.model || 'deepseek-chat',
-      messages: queryInfos.value.messages.slice(0, -1), // 不把占位这条传上去
-      onDelta: (chunk) => {
-        queryInfos.value.messages[queryInfos.value.messages.length - 1].content += chunk
-        messageRef.value?.scrollBottom()
-      }
-    })
-
-    // 4) 持久化会话
-    sessionList.value[activeIndex.value].messages = queryInfos.value.messages
-  } catch (error) {
-    queryInfos.value.messages[queryInfos.value.messages.length - 1].content = String(error?.message || error)
-  } finally {
-    loading.value = false
-  }
-}
-
-// —— 生命周期
 onMounted(async () => {
-  const meta = document.createElement('meta')
-  meta.name = 'viewport'
-  meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover'
-  document.head.appendChild(meta)
-
-  initSessionList()
-  initIndex()
-  initToken()
-
-  const md = new MobileDetect(window.navigator.userAgent)
-  isMobile.value = md.mobile()
+  initSessions()
+  fetchBalance()
   await nextTick()
   messageRef.value?.scrollBottom()
-  window.addEventListener('resize',updateViewportWidth);
-  updateViewportWidth();
-})
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateViewportWidth)
-  if (resizeTimer) {
-    clearTimeout(resizeTimer)
-    resizeTimer = null
-  }
 })
 </script>
 
@@ -339,7 +74,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="message-area">
-          <MessageComp ref="messageRef" :message="queryInfos.messages" :loading="loading" />
+          <MessageComp ref="messageRef" :message="queryInfos.messages" :loading="loading" @retry="handleRetry" />
         </div>
 
         <div class="user-tokens" :class="isMobile ? 'left-space' : ''">
@@ -349,8 +84,8 @@ onBeforeUnmount(() => {
         <div class="input-area" :class="isMobile ? 'left-space' : ''">
           <el-input v-model="queryKeys" id="keyInput" :autosize="{minRows:2,maxRows:4}" type="textarea"
             placeholder="请输入内容" show-word-limit
-            @keydown.enter.prevent="(e) => { if (e.isComposing || loading) return; handleRequest(); }" />
-          <el-button style="height: 50px;width: 50px;border-radius: 50%;margin-right: 50px;" type="primary" @click="handleRequest" :disabled="!queryKeys" :loading="loading">
+            @keydown.enter.prevent="(e) => { if (e.isComposing || loading) return; doSend(); }" />
+          <el-button style="height: 50px;width: 50px;border-radius: 50%;margin-right: 50px;" type="primary" @click="doSend" :disabled="!queryKeys" :loading="loading">
             <el-icon :size="26"><Promotion /></el-icon>
           </el-button>
         </div>

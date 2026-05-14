@@ -8,13 +8,36 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
 import express from 'express'
 import cors from 'cors'
+import rateLimit from 'express-rate-limit'
 import { Readable } from 'node:stream'
 
 const app = express()
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '16kb' }))
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+})
+app.use('/api/chat', apiLimiter)
+
+const API_ACCESS_TOKEN = process.env.API_ACCESS_TOKEN
+function authMiddleware(req, res, next) {
+  if (!API_ACCESS_TOKEN) return next()
+  const token = req.headers['x-api-token'] || req.query.token
+  if (token !== API_ACCESS_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized: invalid or missing API token' })
+  }
+  next()
+}
+app.use('/api/chat', authMiddleware)
+app.use('/api/balance', authMiddleware)
 
 const MAX_AGENT_ROUNDS = 5
+const MAX_MESSAGES = 50
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions'
 const TAVILY_URL = 'https://api.tavily.com/search'
 
@@ -113,6 +136,9 @@ app.post('/api/chat', async (req, res) => {
     if (!Array.isArray(messages) || messages.length === 0) {
       console.error('[Server] Invalid messages:', messages)
       return res.status(400).json({ error: 'Invalid request: messages required' })
+    }
+    if (messages.length > MAX_MESSAGES) {
+      return res.status(400).json({ error: `Too many messages (max ${MAX_MESSAGES})` })
     }
 
     // 未开启 Agent：保持原有透传逻辑

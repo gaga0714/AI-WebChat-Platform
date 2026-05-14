@@ -18,6 +18,9 @@
           >
             <div class="message-item__text">
               <MarkdownRender :source="item.content || (loading ? '思考中...' : '')" />
+              <div v-if="item.error && item.role === 'assistant'" class="retry-bar">
+                <button class="retry-btn" @click="$emit('retry')">重试</button>
+              </div>
             </div>
           </div>
 
@@ -39,6 +42,8 @@
 <script setup>
 import { nextTick } from 'vue'
 import MarkdownRender from './MarkdownRender.vue' // 你自封装的 Markdown 组件
+
+defineEmits(['retry'])
 
 const props = defineProps({
   message: {
@@ -117,6 +122,20 @@ defineExpose({ scrollBottom })
       font-size: 0.8125rem;
       max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;
     }
+  }
+}
+
+.retry-bar {
+  padding: 6px 0 4px;
+  .retry-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    padding: 4px 14px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    &:hover { background: rgba(255,255,255,0.25); }
   }
 }
 </style>

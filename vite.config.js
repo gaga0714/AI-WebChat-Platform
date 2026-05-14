@@ -1,11 +1,16 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 import viteCompression from 'vite-plugin-compression';
 import { startOut } from "./src/plugins/startOut";
 import { buildUp } from "./src/plugins/buildUp";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  return {
+  define: {
+    __API_ACCESS_TOKEN__: JSON.stringify(env.API_ACCESS_TOKEN || ''),
+  },
   plugins: [
     vue(),
     startOut(),
@@ -59,4 +64,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 2000,
   },
-});
+}});

@@ -27,6 +27,7 @@
     "dotenv": "^17.2.2",
     "element-plus": "^2.9.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.1",
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",
     "markdown-it-code-copy": "^0.2.1",

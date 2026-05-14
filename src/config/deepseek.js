@@ -1,21 +1,13 @@
-// import { apiKey } from "./key";
-// DeepSeek配置文件
-// API配置
-// export const API_CONFIG = {
-//     baseURL: "/api/deepseek",
-//     apiKey: apiKey, // 换成自己的apiKey
-//     dangerouslyAllowBrowser: false
-// };
-
-// 模型配置
 export const MODEL_CONFIG = {
     stream: true,
-    max_tokens: 8192, // 限制一次请求中模型生成 completion 的最大 token 数
-    temperature: 0.6, // 严谨与想象 越低越严谨 官方建议0.6
+    max_tokens: 8192,
+    temperature: 0.6,
 }
 
-// 本地存储键名配置
 export const STORAGE_KEYS = {
-    sessionList: "list",
-    activeIndex: "index"
+    sessionList: "aiwebchat_sessions",
+    activeIndex: "aiwebchat_active_index"
 };
+
+const _token = typeof __API_ACCESS_TOKEN__ !== 'undefined' ? __API_ACCESS_TOKEN__ : ''
+export const API_HEADERS = _token ? { 'X-Api-Token': _token } : {}
